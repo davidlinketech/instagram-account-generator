@@ -60,6 +60,8 @@ def gen_ran_passw():
 def get_session_proxy():
     with open('files/proxies.txt', 'r') as proxy_file:
         read_proxies = proxy_file.read()
+    if len(read_proxies) < 2:
+        return
     proxies = read_proxies.splitlines()
     if len(proxies[0]) > 1:
         proxy = proxies[0]
@@ -400,8 +402,11 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
             s = requests.Session()
             s.proxies = get_session_proxy()
             time.sleep(50)
-
-print('how many accs to gen?')
+with open('files/proxies.txt', 'r') as proxy_file:
+    read_proxies = proxy_file.read()
+if len(read_proxies) < 2:
+    print('[warning] empty proxy-file...proceding without proxy')
+print('how many accounts to gen?')
 ts = int(input('-->'))
 threadlist = []
 for i in range(ts):
