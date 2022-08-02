@@ -6,34 +6,100 @@ import random
 import time
 import json
 
-def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
-    if not smsapi or not country_code:
-        print(f'[error in task{thread_id}] check if you specified all information')
-        return
+#generate random password
+def gen_ran_passw():
+    letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+    chars = ["!","?","=","&","$","#"]
+    random_password = ""
+    for x in range(17):
+        value = randbelow(3)
+        if value == 0:
+            if randbelow(2) == 0:
+                random_password += letters[randbelow(len(letters))].upper()
+            else:
+                random_password += letters[randbelow(len(letters))]
+        elif value == 1:
+            random_password += chars[randbelow(len(chars))]
+        elif value == 2:
+            random_password += str(randbelow(10))
+    validcheck = False
+    for letter in letters:
+        if letter.upper() in random_password:
+            validcheck = True
+            break
+    if validcheck == False:
+        random_password += letters[randbelow(len(letters))].upper()
+    else:
+        validcheck = False
+    for letter in letters:
+        if letter in random_password:
+            validcheck = True
+            break
+    if validcheck == False:
+        random_password += letters[randbelow(len(letters))]
+    else:
+        validcheck = False
+    for char in chars:
+        if char in random_password:
+            validcheck = True
+            break
+    if validcheck == False:
+        random_password += chars[randbelow(len(chars))]
+    else:
+        validcheck = False
+    for num in ["0","1","2","3","4","5","6","7","8","9"]:
+        if num in random_password:
+            validcheck = True
+            break
+    if validcheck == False:
+        random_password += str(randbelow(10))
     
-    def get_session_proxy():
-        #opening proxyfile and deleting used proxy
-        with open('proxies.txt', 'r') as proxy_file:
-            proxy_multiline = proxy_file.read()
-        proxies = []
-        for line in proxy_multiline.splitlines():
-            proxies.append(line)
-        if len(proxies[0]) > 1:
-            proxy = proxies[0]
-            del proxies[0]
-            with open('proxies.txt', 'w') as new_proxy_file:
-                for item in proxies:
-                    new_proxy_file.write(item +'\n')
-        prox_user = proxy.split(':')[2]
-        prox_pass = proxy.split(':')[3]
-        prox_ip = proxy.split(':')[0]
-        prox_port = proxy.split(':')[1]
+    return random_password
 
-        final_proxies = {
-            "http": f"http://{prox_user}:{prox_pass}@{prox_ip}:{prox_port}",
-            "https": f"http://{prox_user}:{prox_pass}@{prox_ip}:{prox_port}"
-        }
-        return final_proxies
+#opening proxyfile and deleting used proxy
+def get_session_proxy():
+    with open('files/proxies.txt', 'r') as proxy_file:
+        read_proxies = proxy_file.read()
+    proxies = read_proxies.splitlines()
+    if len(proxies[0]) > 1:
+        proxy = proxies[0]
+        del proxies[0]
+        with open('files/proxies.txt', 'w') as new_proxy_file:
+            new_proxy_file.write('\n'.join(proxies))
+    
+    proxy_info = proxy.split(':')
+    final_proxies = {
+        "http": f"http://{proxy_info[2]}:{proxy_info[3]}@{proxy_info[0]}:{proxy_info[1]}",
+        "https": f"http://{proxy_info[2]}:{proxy_info[3]}@{proxy_info[0]}:{proxy_info[1]}"
+    }
+    return final_proxies
+
+#generates random client id
+def gen_client_id():
+    letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+    ran4letters = ""
+    for a in range(4):
+        if random.randint(0,1) == 0:
+            ran4letters += letters[random.randrange(0,len(letters))]
+        else:
+            ran4letters += letters[random.randrange(0,len(letters))].upper()
+    ran15chars = ""
+    for b in range(15):
+        if random.randint(0,1) == 0:
+            if random.randint(0,1) == 0:
+                ran15chars += letters[random.randrange(0,len(letters))]
+            else:
+                ran15chars += letters[random.randrange(0,len(letters))].upper()
+        else:
+            ran15chars += str(random.randint(0,9))
+
+    client_id = f'Yf{ran4letters}ALAAG{letters[random.randrange(0,len(letters))].upper() + ran15chars}'
+    return client_id
+
+def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
+    if not smsapi or not country_code or smsapi == "YOUR_SMS_API_KEY":
+        print(f'[error in task{thread_id}] check if you specified all information correctly')
+        return
 
     #creating session + appending proxies to session
     s = requests.Session()
@@ -87,78 +153,7 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
 
     time.sleep(0.2)
 
-    #generate data:
-    def ran_passw():
-        letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-        chars = ["!","?","=","&","$","#"]
-        random_password = ""
-        for x in range(17):
-            value = randbelow(3)
-            if value == 0:
-                if randbelow(2) == 0:
-                    random_password += letters[randbelow(len(letters))].upper()
-                else:
-                    random_password += letters[randbelow(len(letters))]
-            elif value == 1:
-                random_password += chars[randbelow(len(chars))]
-            elif value == 2:
-                random_password += str(randbelow(10))
-        validcheck = False
-        for letter in letters:
-            if letter.upper() in random_password:
-                validcheck = True
-                break
-        if validcheck == False:
-            random_password += letters[randbelow(len(letters))].upper()
-        else:
-            validcheck = False
-        for letter in letters:
-            if letter in random_password:
-                validcheck = True
-                break
-        if validcheck == False:
-            random_password += letters[randbelow(len(letters))]
-        else:
-            validcheck = False
-        for char in chars:
-            if char in random_password:
-                validcheck = True
-                break
-        if validcheck == False:
-            random_password += chars[randbelow(len(chars))]
-        else:
-            validcheck = False
-        for num in ["0","1","2","3","4","5","6","7","8","9"]:
-            if num in random_password:
-                validcheck = True
-                break
-        if validcheck == False:
-            random_password += str(randbelow(10))
-        
-        return random_password
-
-    def gen_client_id():
-        letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-        ran4letters = ""
-        for a in range(4):
-            if random.randint(0,1) == 0:
-                ran4letters += letters[random.randrange(0,len(letters))]
-            else:
-                ran4letters += letters[random.randrange(0,len(letters))].upper()
-        ran15chars = ""
-        for b in range(15):
-            if random.randint(0,1) == 0:
-                if random.randint(0,1) == 0:
-                    ran15chars += letters[random.randrange(0,len(letters))]
-                else:
-                    ran15chars += letters[random.randrange(0,len(letters))].upper()
-            else:
-                ran15chars += str(random.randint(0,9))
-
-        client_id = f'Yf{ran4letters}ALAAG{letters[random.randrange(0,len(letters))].upper() + ran15chars}'
-        return client_id
-
-    password = ran_passw() 
+    password = gen_ran_passw() 
     client_id = gen_client_id()
     name = names.get_full_name()
     month = str(random.randint(1,12))
@@ -352,12 +347,12 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
                     if res.json()["message"]:
                         print(f'[error in task{thread_id}] acc got clipped')
                         clipurl = res.json()["checkpoint_url"]
-                        with open('clipped_accounts.txt', 'a') as acc_file:
+                        with open('files/clipped_accounts.txt', 'a') as acc_file:
                             acc_file.write(f'{username}:{password}\n')
                 except:
                     #account is not clipped!
                     print(f'[success in task{thread_id}] acc not clipped')
-                    with open('working_accounts.txt', 'a') as acc_file:
+                    with open('files/working_accounts.txt', 'a') as acc_file:
                         acc_file.write(f'{username}:{password}\n')
                     #sending message to discord webhook if specified
                     if webhook:
