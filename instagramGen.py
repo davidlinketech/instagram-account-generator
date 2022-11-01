@@ -1,7 +1,7 @@
 import requests
 import threading
 import names
-from secrets import randbelow
+from secrets import randbelow, choice
 import random
 import time
 import json
@@ -11,8 +11,15 @@ def gen_ran_passw():
     letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
     chars = ["!","?","=","&","$","#"]
     random_password = ""
-    for x in range(17):
-        value = randbelow(3)
+    oldvalue = ""
+    choicelist = [0,1,2]
+    for x in range(14):
+        if oldvalue:
+            choicelist.remove(oldvalue)
+            value = choice(choicelist)
+            choicelist.append(oldvalue)
+        else:
+            value = randbelow(3)
         if value == 0:
             if randbelow(2) == 0:
                 random_password += letters[randbelow(len(letters))].upper()
@@ -22,38 +29,11 @@ def gen_ran_passw():
             random_password += chars[randbelow(len(chars))]
         elif value == 2:
             random_password += str(randbelow(10))
-    validcheck = False
-    for letter in letters:
-        if letter.upper() in random_password:
-            validcheck = True
-            break
-    if validcheck == False:
-        random_password += letters[randbelow(len(letters))].upper()
-    else:
-        validcheck = False
-    for letter in letters:
-        if letter in random_password:
-            validcheck = True
-            break
-    if validcheck == False:
-        random_password += letters[randbelow(len(letters))]
-    else:
-        validcheck = False
-    for char in chars:
-        if char in random_password:
-            validcheck = True
-            break
-    if validcheck == False:
-        random_password += chars[randbelow(len(chars))]
-    else:
-        validcheck = False
-    for num in ["0","1","2","3","4","5","6","7","8","9"]:
-        if num in random_password:
-            validcheck = True
-            break
-    if validcheck == False:
-        random_password += str(randbelow(10))
+        oldvalue = value
     
+    random_password += letters[randbelow(len(letters))].upper() + letters[randbelow(len(letters))]
+    random_password += chars[randbelow(len(chars))] + str(randbelow(10))
+
     return random_password
 
 #opening proxyfile and deleting used proxy
@@ -61,7 +41,7 @@ def get_session_proxy():
     with open('files/proxies.txt', 'r') as proxy_file:
         read_proxies = proxy_file.read()
     if len(read_proxies) < 2:
-        return
+        raise ValueError("no proxies in proxylist")
     proxies = read_proxies.splitlines()
     if len(proxies[0]) > 1:
         proxy = proxies[0]
@@ -80,13 +60,13 @@ def get_session_proxy():
 def gen_client_id():
     letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
     ran4letters = ""
-    for a in range(4):
+    for _ in range(4):
         if random.randint(0,1) == 0:
             ran4letters += letters[random.randrange(0,len(letters))]
         else:
             ran4letters += letters[random.randrange(0,len(letters))].upper()
     ran15chars = ""
-    for b in range(15):
+    for _ in range(15):
         if random.randint(0,1) == 0:
             if random.randint(0,1) == 0:
                 ran15chars += letters[random.randrange(0,len(letters))]
@@ -98,14 +78,48 @@ def gen_client_id():
     client_id = f'Yf{ran4letters}ALAAG{letters[random.randrange(0,len(letters))].upper() + ran15chars}'
     return client_id
 
+def genLoginHeaders(csrf, claim):
+    headers = {
+        'accept': '*/*',
+        'accept-encoding': 'gzip, deflate, br',
+        'accept-language': 'q=0.9,en-US;q=0.8,en;q=0.7',
+        'content-length': '0',
+        'content-type': 'application/x-www-form-urlencoded',
+        'origin': 'https://www.instagram.com',
+        'referer': 'https://www.instagram.com/',
+        'sec-ch-ua':'" Not;A Brand";v="99", "Google Chrome";v="97", "Chromium";v="97"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36',
+        'x-asbd-id': '198387',
+        'x-csrftoken': csrf,
+        'x-ig-app-id': '936619743392459',
+        'x-ig-www-claim': claim,
+        'x-instagram-ajax': '6ab3c34e0025',
+        'x-requested-with': 'XMLHttpRequest'
+    }
+    return headers
+
+
 def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
     if not smsapi or not country_code or smsapi == "YOUR_SMS_API_KEY":
         print(f'[error in task{thread_id}] check if you specified all information correctly')
         return
+    if country_code not in country_to_phone:
+        print(f'[error in task{thread_id}] countrycode not supported yet')
+        return
 
     #creating session + appending proxies to session
     s = requests.Session()
-    s.proxies = get_session_proxy()
+    try:
+        s.proxies = get_session_proxy()
+    except ValueError as err:
+        print(err)
+        return
+        
 
     #getting device_id and csrf token
     while True:
@@ -150,7 +164,11 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
         except:
             print(f'[error in task{thread_id}] couldnt get device_id...getting new proxy and session')
             s = requests.Session()
-            s.proxies = get_session_proxy()
+            try:
+                s.proxies = get_session_proxy()
+            except ValueError as err:
+                print(err)
+                return
             time.sleep(2)
 
     time.sleep(0.2)
@@ -189,20 +207,14 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
     #getting phonenumber and sms code
 
     for x in range(3):
-        if country_code == "DE":
-            res = s.get(f'https://sms-activate.ru/stubs/handler_api.php?api_key={smsapi}&action=getNumber&service=ig&country=43')
-        elif country_code == "IT":
-            res = s.get(f'https://sms-activate.ru/stubs/handler_api.php?api_key={smsapi}&action=getNumber&service=ig&country=86')
-        elif country_code == "ES":
-            res = s.get(f'https://sms-activate.ru/stubs/handler_api.php?api_key={smsapi}&action=getNumber&service=ig&country=56')
-        elif country_code == "FR":
-            res = s.get(f'https://sms-activate.ru/stubs/handler_api.php?api_key={smsapi}&action=getNumber&service=ig&country=78')
+        res = s.get(f'https://sms-activate.ru/stubs/handler_api.php?api_key={smsapi}&action=getNumber&service=ig&country={country_to_phone[country_code]}')
         try:
             phonenum = res.text.split(':')[2]
             phone_id = res.text.split(':')[1]
         except:
-            print(f'[error in task{thread_id}] no numbers/no balance')
+            print(f'[error in task{thread_id}] couldn\'t get phone number')
             return
+
         #making first creation attempt
         while True:
             body = {
@@ -215,7 +227,7 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
                 'opt_into_one_tap': 'false'
             }
             res = s.post('https://www.instagram.com/accounts/web_create_ajax/attempt/', headers=headers, data=body)
-            #checking for error
+           #checking for error
             try:
                 if not res.json()["status"]:
                     print(f'[error in task{thread_id}] acc creation failed')
@@ -229,6 +241,7 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
                 username = res.json()["username_suggestions"][0]
             break
         time.sleep(0.4)
+
         #sending sms to phone number
         body = {          
             'client_id': client_id,
@@ -237,9 +250,10 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
             "big_blue_token": ""
         } 
         res = s.post('https://www.instagram.com/accounts/send_signup_sms_code_ajax/', headers=headers, data=body)
+        
         print(f'[task{thread_id}] getting sms code')
         #receiving sms code
-        for k in range(15):
+        for _ in range(15):
             res = requests.get(f'https://api.sms-activate.org/stubs/handler_api.php?api_key={smsapi}&action=getStatus&id={phone_id}')
             try:
                 sms_code = res.text.split(':')[1]
@@ -252,6 +266,7 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
         if sms_code:
             #accept sms code on sms-activate
             res = requests.get(f'https://api.sms-activate.org/stubs/handler_api.php?api_key={smsapi}&action=setStatus&status=6&id={phone_id}')
+            
             #validating sms code
             body = {
                 'client_id': client_id,
@@ -259,13 +274,16 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
                 'sms_code': sms_code
             }
             res = s.post('https://www.instagram.com/accounts/validate_signup_sms_code_ajax/', headers=headers, data=body)
+            print(f'[task{thread_id}] sms code valid!')
             break
+        
         else:
             #cancel number
             print(f'[error in task{thread_id}] couldnt get sms code...getting new phone number')
             requests.get(f'https://api.sms-activate.org/stubs/handler_api.php?api_key={smsapi}&action=setStatus&status=8&id={phone_id}')
             time.sleep(1)
     
+    print(f'[task{thread_id}] sending information...')
     body = {
         'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
         'phone_number': phonenum,
@@ -286,38 +304,15 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
     res = s.post('https://www.instagram.com/accounts/web_create_ajax/', headers=headers, data=body)
     if res.status_code == 200:
         print(f'[success in task{thread_id}] successfully created account')
+    else:
+        print(f'[error in task{thread_id}] account creation failed')
+        return
 
     #sleeping then checking if acc got clipped
-    print(f'[task{thread_id}] sleeping 50 seconds then checking if acc got clipped')
-    time.sleep(30)                      #you can play with this delay and make it lower
-
-    #headers for the last requests
-    def genHeaders(csrf, claim):
-        headers = {
-            'accept': '*/*',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
-            'content-length': '0',
-            'content-type': 'application/x-www-form-urlencoded',
-            'origin': 'https://www.instagram.com',
-            'referer': 'https://www.instagram.com/',
-            'sec-ch-ua':'" Not;A Brand";v="99", "Google Chrome";v="97", "Chromium";v="97"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36',
-            'x-asbd-id': '198387',
-            'x-csrftoken': csrf,
-            'x-ig-app-id': '936619743392459',
-            'x-ig-www-claim': claim,
-            'x-instagram-ajax': '6ab3c34e0025',
-            'x-requested-with': 'XMLHttpRequest'
-        }
-        return headers
-
-    for x in range(5):
+    print(f'[task{thread_id}] sleeping 15 seconds then checking if acc got clipped')
+    time.sleep(15)                      #you can play with this delay and make it lower
+    
+    for retries in range(3):
         #getting first csrf token
         res = s.get('https://www.instagram.com/accounts/login/')
         csrf = res.text.split('csrf_token":"')[1].split('"')[0]
@@ -332,23 +327,21 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
         }
 
         #trying to login
-        headers = genHeaders(csrf, insta_claim)
-        clipurl = False
+        headers = genLoginHeaders(csrf, insta_claim)
         res = s.post('https://www.instagram.com/accounts/login/ajax/', headers=headers, data=payload)
         try:
-            if res.json()["authenticated"]:
-                #successfull logged in
-                print(f'[task{thread_id}] logged in')
+            if res.json()["authenticated"]:                 #successfull logged in:
+                print(f'[task{thread_id}] logged in!')
                 insta_claim = res.headers["x-ig-set-www-claim"]
                 csrf = s.cookies.get_dict()["csrftoken"]
-                headers = genHeaders(csrf, insta_claim)
+                headers = genLoginHeaders(csrf, insta_claim)
                 time.sleep(1)
                 res = s.post(f'https://www.instagram.com/web/friendships/6860189/follow/', headers=headers, data={})
                 try:
                     #account got clipped
                     if res.json()["message"]:
                         print(f'[error in task{thread_id}] acc got clipped')
-                        clipurl = res.json()["checkpoint_url"]
+                        #clipurl = res.json()["checkpoint_url"]
                         with open('files/clipped_accounts.txt', 'a') as acc_file:
                             acc_file.write(f'{username}:{password}\n')
                 except:
@@ -387,25 +380,51 @@ def instagen(thread_id, smsapi=None, country_code=None, webhook=None):
                         res = requests.post(webhook, data=json.dumps(webhook_body), headers={"Content-Type":"application/json"})
                 break
             else:
-                #the login failed, it will now get a new session and try it again
-                #change the retry delay to what you like
-                print(f'[error in task{thread_id}] login failed')
-                print(f'[task{thread_id}] switching proxies, creating new session and retrying in 50 seconds again')
-                s = requests.Session()
-                s.proxies = get_session_proxy()
-                time.sleep(50)
+                #login failed
+                if retries < 2:
+                    print(f'[error in task{thread_id}] login failed')
+                    print(f'[task{thread_id}] switching proxies, creating new session and retrying in 15 seconds again')
+                    s = requests.Session()
+                    try:
+                        s.proxies = get_session_proxy()
+                    except ValueError as err:
+                        print(err)
+                        return
+                    time.sleep(15)                  #change the retry delay to what you like
+                else:
+                    print(f'[error in task{thread_id}] login failed - stopping task')
+                    return
+                    
+        
         except Exception as e:
-            #the login failed, it will now get a new session and try it again
-            #change the retry delay to what you like
-            print(f'[error in task{thread_id}] login failed')
-            print(f'[task{thread_id}] switching proxies, creating new session and retrying in 50 seconds again')
-            s = requests.Session()
-            s.proxies = get_session_proxy()
-            time.sleep(50)
+            #login failed
+            if retries < 2:
+                print(f'[error in task{thread_id}] login failed')
+                print(f'[task{thread_id}] switching proxies, creating new session and retrying in 15 seconds again')
+                s = requests.Session()
+                try:
+                    s.proxies = get_session_proxy()
+                except ValueError as err:
+                    print(err)
+                    return
+                time.sleep(15)                      #change the retry delay to what you like
+            else:
+                print(f'[error in task{thread_id}] login failed - stopping task')
+                return
+
 with open('files/proxies.txt', 'r') as proxy_file:
     read_proxies = proxy_file.read()
-if len(read_proxies) < 2:
-    print('[warning] empty proxy-file...proceding without proxy')
+    if len(read_proxies) < 2:
+        print('[warning] empty proxy-file...proceding without proxy')
+
+#currently supported countries
+country_to_phone = {
+    "DE": "43",
+    "IT": "86",
+    "ES": "56",
+    "FR": "78"
+}
+
 print('how many accounts to gen?')
 ts = int(input('-->'))
 threadlist = []
@@ -415,4 +434,11 @@ for i in range(ts):
     threadlist.append(t)
     print(f'[starting thread {str(i)}]')
     t.start()
-    time.sleep(0.5)
+    time.sleep(0.3)
+
+#wait till all tasks finished
+for thread in threadlist:
+    thread.join()
+
+input("press enter to exit...")
+

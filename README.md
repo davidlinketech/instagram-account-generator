@@ -10,5 +10,5 @@ You need a "sms-activate.org" API-key.
 
 Make sure to use good proxies - otherwise the accounts will be banned.
 
-**IMPORTANT NOTE:** Make sure to change the information in line 414 to yours. (sms API-key, Discord webhook...)
+**IMPORTANT NOTE:** Make sure to change the information around line 433 to yours. (sms API-key, Discord webhook...)
 
